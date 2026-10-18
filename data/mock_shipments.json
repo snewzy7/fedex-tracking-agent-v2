@@ -1,0 +1,15 @@
+{
+  "_comment": "SYNTHETIC DATA ONLY. These tracking numbers are made up and do not belong to real packages. Dates use YYYY-MM-DD.",
+  "shipments": [
+    {"tracking_number": "100000000001", "status": "delivered", "eta": "2026-10-14", "delivered_on": "2026-10-14"},
+    {"tracking_number": "100000000002", "status": "delivered", "eta": "2026-10-12", "delivered_on": "2026-10-15"},
+    {"tracking_number": "100000000003", "status": "in_transit", "eta": "2026-10-21"},
+    {"tracking_number": "100000000004", "status": "out_for_delivery", "eta": "2026-10-18"},
+    {"tracking_number": "100000000005", "status": "label_created"},
+    {"tracking_number": "100000000006", "status": "in_transit", "eta": "2026-10-15"},
+    {"tracking_number": "100000000007", "status": "exception", "eta": "2026-10-17", "detail": "Incorrect address - unable to deliver"},
+    {"tracking_number": "100000000008", "status": "exception", "detail": "Package damaged in transit"},
+    {"tracking_number": "100000000009", "simulate": "timeout"},
+    {"tracking_number": "100000000010", "simulate": "error"}
+  ]
+}

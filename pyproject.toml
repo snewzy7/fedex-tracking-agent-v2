@@ -1,0 +1,22 @@
+[project]
+name = "shipment-tracker"
+version = "0.1.0"
+description = "Reads shipments from a Google Sheet, checks tracking status, and flags problems."
+requires-python = ">=3.10"
+# Runtime dependencies are added milestone by milestone, only when the code needs them.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# Lets tests import `shipment_tracker` from src/ without installing the package first.
+pythonpath = ["src"]
+testpaths = ["tests"]
