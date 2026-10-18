@@ -47,7 +47,7 @@ Sheet rows ──▶ look_up() ──▶ classify() ──▶ status_cell() ─�
 
 ## Setup
 
-Requires Python 3.10+.
+Requires Python 3.10+. **New to this? Follow [docs/setup-mac.md](docs/setup-mac.md)** for step-by-step Mac instructions.
 
 ```bash
 python3 -m venv .venv
