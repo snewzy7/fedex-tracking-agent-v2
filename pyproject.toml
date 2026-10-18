@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Reads shipments from a Google Sheet, checks tracking status, and flags problems."
 requires-python = ">=3.10"
 # Runtime dependencies are added milestone by milestone, only when the code needs them.
-dependencies = []
+dependencies = [
+    "python-dotenv>=1.0",  # reads settings and secrets from a .env file
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]

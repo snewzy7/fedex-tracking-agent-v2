@@ -7,6 +7,7 @@ from shipment_tracker.sheets.memory_sheet import MemorySheet
 from shipment_tracker.updater import (
     UnsafeUpdateError,
     apply_status_updates,
+    check_layout,
     plan_status_updates,
     update_statuses,
 )
@@ -137,3 +138,16 @@ def test_apply_refuses_any_batch_containing_an_unsafe_cell(bad_update):
     with pytest.raises(UnsafeUpdateError):
         apply_status_updates(sheet, "T", [good, bad_update])
     assert sheet.write_calls == 0  # all or nothing: even the good cell wasn't written
+
+
+def test_no_header_is_added_when_there_is_nothing_to_write():
+    sheet = make_sheet(row("Avery", "111111111111"))
+    assert plan_status_updates(sheet, "T", {}) == []
+
+
+def test_check_layout_catches_problems_before_any_lookups():
+    good = make_sheet(row("Avery", "111111111111"))
+    check_layout(good, "T")  # no error
+    bad = MemorySheet({"T": [[*HEADER, "Notes"]]})
+    with pytest.raises(SheetLayoutError):
+        check_layout(bad, "T")

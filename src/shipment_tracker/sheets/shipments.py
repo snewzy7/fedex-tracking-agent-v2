@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from shipment_tracker.sheets.base import SheetClient
-from shipment_tracker.sheets.layout import find_column, tracking_column
+from shipment_tracker.sheets.layout import STATUS_HEADER, find_column, tracking_column
 
 # Shipment field -> header text in the sheet. Only Tracking is required;
 # a missing optional column just leaves that field blank.
@@ -18,6 +18,7 @@ FIELD_HEADERS = {
     "state": "State",
     "zip_code": "ZIP code",
     "kit_quantity": "Kit quantity",
+    "status": STATUS_HEADER,
 }
 
 
@@ -34,6 +35,7 @@ class Shipment:
     state: str = ""
     zip_code: str = ""
     kit_quantity: str = ""
+    status: str = ""  # what the Status cell currently says (written by a previous run)
 
 
 def read_shipments(sheet: SheetClient, tab: str) -> list[Shipment]:

@@ -13,3 +13,6 @@ __pycache__/
 
 # Run output
 logs/
+
+# Practice sheet working copy
+work/

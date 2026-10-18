@@ -20,6 +20,8 @@ FLAG_COLORS: dict[Flag, str | None] = {
     Flag.LOOKUP_FAILED: "#f4c7c3",  # light red
 }
 
+DELIVERED_PREFIX = "Delivered"  # the runner uses this to recognize finished rows
+
 _STATUS_WORDS = {
     TrackingStatus.LABEL_CREATED: "Label created",
     TrackingStatus.IN_TRANSIT: "In transit",
@@ -41,7 +43,7 @@ def _status_text(result: TrackingResult, flag: Flag) -> str:
     if flag is Flag.LOOKUP_FAILED:
         return f"Lookup failed: {result.failure_message}"
     if flag is Flag.DELIVERED:
-        return f"Delivered {_short(result.delivered_on)}"
+        return f"{DELIVERED_PREFIX} {_short(result.delivered_on)}"
     if flag is Flag.EXCEPTION:
         return f"Exception: {result.detail or 'carrier reported a problem'}"
 

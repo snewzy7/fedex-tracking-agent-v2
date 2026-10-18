@@ -42,9 +42,6 @@ def plan_status_updates(
     target = status_column(header)
 
     updates = []
-    if target.needs_header:
-        updates.append(CellUpdate(row=1, column=target.column, text=STATUS_HEADER, color=None))
-
     for row_number, row in enumerate(rows[1:], start=2):
         key = tracking_key(_cell(row, tracking_col))
         new = statuses.get(key) if key else None
@@ -53,7 +50,20 @@ def plan_status_updates(
         if _cell(row, target.column) == new.text:
             continue  # already up to date
         updates.append(CellUpdate(row=row_number, column=target.column, text=new.text, color=new.color))
+
+    if updates and target.needs_header:
+        updates.insert(0, CellUpdate(row=1, column=target.column, text=STATUS_HEADER, color=None))
     return updates
+
+
+def check_layout(sheet: SheetClient, tab: str) -> None:
+    """Raise SheetLayoutError now if we couldn't safely write this tab later.
+
+    Called before any lookups, so a bad layout doesn't waste carrier calls.
+    """
+    rows = sheet.read_tab(tab)
+    if rows:
+        status_column(rows[0])  # also checks the Tracking column exists
 
 
 def apply_status_updates(sheet: SheetClient, tab: str, updates: list[CellUpdate]) -> None:

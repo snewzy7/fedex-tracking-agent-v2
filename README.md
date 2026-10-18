@@ -5,17 +5,19 @@ number, writes a status next to it (green when delivered), and flags
 delays, exceptions, and failed lookups. Claude summarizes the problems and
 suggests next steps.
 
-> **Current stage:** Milestone 2. Synthetic data only. No real shipments,
+> **Current stage:** Milestone 3. Synthetic data only. No real shipments,
 > no Google Sheets, no AI calls yet.
 
 ## How it fits together
 
 ```
 Sheet rows ──▶ look_up() ──▶ classify() ──▶ status_cell() ──▶ Sheet "Status" column
-                  │              │
-           tracking provider   plain rules            Claude summarizes flagged rows
-           (mock now, FedEx    (no AI)                (later, read-only: it never
-            later)                                     sets a status)
+                  │              │                                     │
+           tracking provider   plain rules                       run report + logs
+           (mock now, FedEx    (no AI)                                 │
+            later)                                     Claude summarizes flagged rows
+                                                       (later, read-only: it never
+                                                        sets a status)
 ```
 
 | File | Job |
@@ -28,10 +30,15 @@ Sheet rows ──▶ look_up() ──▶ classify() ──▶ status_cell() ─�
 | `rules.py` | Decides the flag: delivered / on track / delayed / exception / lookup failed |
 | `display.py` | Status cell text and color |
 | `sheets/base.py` | The contract every spreadsheet backend follows (read a tab, write cells) |
-| `sheets/memory_sheet.py` | Fake in-memory spreadsheet loaded from `data/mock_sheet.json` |
+| `sheets/memory_sheet.py` | Fake in-memory spreadsheet, for tests |
+| `sheets/json_file_sheet.py` | Practice sheet saved to `work/mock_sheet.json`, so runs persist |
 | `sheets/layout.py` | Finds Tracking and Status columns by header name, never by position |
 | `sheets/shipments.py` | Turns rows into `Shipment` objects; skips rows with a blank Tracking cell |
 | `updater.py` | Writes only the Status column, matched by tracking number, only when changed |
+| `pipeline.py` | One full check of every tab, producing a `RunReport` |
+| `run_log.py` | Text log, one JSON report per run |
+| `config.py` | Settings from environment variables / `.env` |
+| `cli.py` | The `python -m shipment_tracker ...` commands |
 
 **Delayed** means not delivered and today is past the ETA.
 
@@ -43,14 +50,35 @@ Requires Python 3.10+.
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
+cp .env.example .env             # optional: the defaults work as-is
 ```
 
-## Run
+## Commands
 
 ```bash
-pytest                           # run the tests
-python -m shipment_tracker.demo  # fill in the Status column of a fake two-tab sheet
+python -m shipment_tracker run --dry-run    # show what would change, write nothing
+python -m shipment_tracker run              # check every tab and update Status
+python -m shipment_tracker run --today 2026-10-25   # pretend it's another day
+python -m shipment_tracker run --recheck-delivered  # also re-check Delivered rows
+python -m shipment_tracker test             # run the tests and save the results
+python -m shipment_tracker reset-mock-sheet # start the practice sheet over
 ```
+
+`run` exits with code 0 when there were no errors and 1 when something needs
+attention. Failed lookups are *not* errors: they show in the sheet as
+"Lookup failed" so someone can fix the tracking number. Errors are problems
+with a tab (missing, bad layout) or unexpected crashes on a row.
+
+Rows already marked **Delivered** are skipped on later runs, so finished
+packages don't use up tracking lookups.
+
+## Logs
+
+Everything goes in `logs/` (git-ignored):
+
+- `logs/runs.log`: timestamped text log; errors include full technical details
+- `logs/runs/<timestamp>.json`: every row's outcome, counts, and errors for one run
+- `logs/tests/history.log` and `logs/tests/<timestamp>.xml`: test results
 
 ## Sheet layout
 
@@ -65,7 +93,7 @@ writing anything and asks you to add a Status header yourself.
 
 - [x] **1. Core:** data shapes, mock provider, status rules, display, tests
 - [x] **2. Sheet layer:** in-memory sheet, safe updater that only writes the Status column
-- [ ] **3. Runner:** command-line run, dry-run mode, run log, `.env` loading
+- [x] **3. Runner:** command-line run, dry-run mode, run log, `.env` loading
 - [ ] **4. Claude summary:** structured output, tested with a fake client
 - [ ] **5. Real Google Sheet:** a test copy first
 - [ ] **6. Daily schedule**
