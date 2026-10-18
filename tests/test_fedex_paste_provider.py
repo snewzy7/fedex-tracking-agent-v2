@@ -11,6 +11,7 @@ from shipment_tracker.tracking.fedex_paste_provider import FedExPasteProvider, p
 SAMPLE = (Path(__file__).parent / "fixtures" / "fedex_summary_sample.txt").read_text()
 HEADER = "Tracking ID\tShip date\tShipper city, state\tRecipient city, state\tStatus\tDelivered date\tScheduled delivery date\tService"
 TODAY = date(2026, 10, 18)
+CELL_PER_LINE = (Path(__file__).parent / "fixtures" / "fedex_summary_textedit.txt").read_text()
 
 
 def page(*rows: str) -> str:
@@ -92,7 +93,7 @@ def test_strange_date_text_is_reported_not_guessed():
 def test_row_cut_off_before_its_last_line_is_reported():
     text = "\n".join(["Summary Tracking Results", HEADER, "100000000207\t10/15/26\tNEW YORK, NY\tBOISE, ID\t", "On the way"])
     result = parse_fedex_summary(text)["100000000207"]
-    assert "ends before" in result.failure_message
+    assert "fewer cells" in result.failure_message
 
 
 def test_windows_line_endings_work():
@@ -117,3 +118,21 @@ def test_several_pastes_combine_and_a_later_paste_wins():
     assert provider.fetch("100000000101").status is TrackingStatus.IN_TRANSIT
     assert provider.fetch("100000000102").status is TrackingStatus.IN_TRANSIT
     assert len(provider.tracking_numbers) == 5
+
+
+def test_textedit_style_paste_reads_the_same_as_tab_style():
+    # TextEdit puts every cell on its own line, capitalizes headers, and keeps
+    # invisible text-direction marks; the results must be identical.
+    assert parse_fedex_summary(CELL_PER_LINE) == parse_fedex_summary(SAMPLE)
+
+
+def test_footer_links_starting_with_fedex_are_not_read_as_a_service():
+    result = parse_fedex_summary(CELL_PER_LINE)["100000000105"]  # last row, right before the footer
+    assert result.succeeded
+    assert result.eta == date(2026, 10, 19)
+
+
+def test_strange_text_where_the_date_should_be_is_reported():
+    text = page("100000000208\t10/15/26\tNEW YORK, NY\tBOISE, ID\t", "On the way", "soon-ish\tFedEx Ground")
+    result = parse_fedex_summary(text)["100000000208"]
+    assert "no delivery date shown" in result.failure_message
