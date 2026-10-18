@@ -16,3 +16,8 @@ logs/
 
 # Practice sheet working copy
 work/
+
+# Real spreadsheet data: never commit downloads or updated copies
+output/
+*.xlsx
+!data/sample_tracking.xlsx

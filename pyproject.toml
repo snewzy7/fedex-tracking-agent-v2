@@ -8,6 +8,7 @@ dependencies = [
     "python-dotenv>=1.0",  # reads settings and secrets from a .env file
     "anthropic>=1.15",  # official Claude SDK (AI summary)
     "pydantic>=2",  # checks the shape of Claude's answer
+    "openpyxl>=3.1",  # reads and writes Excel files downloaded from Google Sheets
 ]
 
 [project.optional-dependencies]

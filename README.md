@@ -5,8 +5,9 @@ number, writes a status next to it (green when delivered), and flags
 delays, exceptions, and failed lookups. Claude summarizes the problems and
 suggests next steps.
 
-> **Current stage:** Milestone 4. Synthetic data only. No real shipments or
-> Google Sheets yet. The Claude summary runs only if you set an API key.
+> **Current stage:** Milestone 5. Works on an Excel file downloaded from
+> Google Sheets. Tracking statuses are still synthetic (mock provider) until
+> FedEx is connected. The Claude summary runs only if you set an API key.
 
 ## How it fits together
 
@@ -31,6 +32,7 @@ Sheet rows ──▶ look_up() ──▶ classify() ──▶ status_cell() ─�
 | `display.py` | Status cell text and color |
 | `sheets/base.py` | The contract every spreadsheet backend follows (read a tab, write cells) |
 | `sheets/memory_sheet.py` | Fake in-memory spreadsheet, for tests |
+| `sheets/excel_file_sheet.py` | Reads an `.xlsx` downloaded from Google Sheets; saves an updated copy |
 | `sheets/json_file_sheet.py` | Practice sheet saved to `work/mock_sheet.json`, so runs persist |
 | `sheets/layout.py` | Finds Tracking and Status columns by header name, never by position |
 | `sheets/shipments.py` | Turns rows into `Shipment` objects; skips rows with a blank Tracking cell |
@@ -62,6 +64,7 @@ python -m shipment_tracker run              # check every tab and update Status
 python -m shipment_tracker run --today 2026-10-25   # pretend it's another day
 python -m shipment_tracker run --recheck-delivered  # also re-check Delivered rows
 python -m shipment_tracker run --no-summary         # skip the Claude summary
+python -m shipment_tracker run --xlsx FILE.xlsx     # use a sheet downloaded as Excel
 python -m shipment_tracker test             # run the tests and save the results
 python -m shipment_tracker reset-mock-sheet # start the practice sheet over
 ```
@@ -70,6 +73,39 @@ python -m shipment_tracker reset-mock-sheet # start the practice sheet over
 attention. Failed lookups are *not* errors: they show in the sheet as
 "Lookup failed" so someone can fix the tracking number. Errors are problems
 with a tab (missing, bad layout) or unexpected crashes on a row.
+
+## Excel file workflow (until Google Sheets access is set up)
+
+1. **Download.** In Google Sheets: *File > Download > Microsoft Excel (.xlsx)*.
+   One file holds both tabs.
+2. **Run.**
+   ```bash
+   python -m shipment_tracker run --xlsx ~/Downloads/your-file.xlsx --dry-run   # preview
+   python -m shipment_tracker run --xlsx ~/Downloads/your-file.xlsx
+   ```
+   The tool saves an updated copy in `output/` and never changes your download.
+   Try it first with the synthetic sample: `--xlsx data/sample_tracking.xlsx`.
+3. **Paste back.** Open the updated copy, and for each tab copy the **Status**
+   column (header included) and paste it into the same column of the real
+   sheet with *Paste values only* (Ctrl+Shift+V, or Cmd+Shift+V on a Mac).
+   - Paste soon after downloading, and **don't sort or delete rows in
+     between**: the pasted column lines up with rows by position. New form
+     responses added at the bottom are fine; they just won't have a status yet.
+   - Spot-check a few rows: each status should sit next to its own tracking number.
+
+**Colors, set up once:** instead of pasting formatting, let Google Sheets
+color the Status column itself. Select the Status column, then
+*Format > Conditional formatting > Format cells if... > Text starts with*:
+
+| Text starts with | Fill color |
+|---|---|
+| `Delivered` | light green |
+| `Delayed` | light yellow |
+| `Exception` | light red |
+| `Lookup failed` | light red |
+
+Downloads and updated copies contain real names and addresses, so `*.xlsx`
+and `output/` are git-ignored (only the synthetic sample is committed).
 
 ## AI summary
 
@@ -109,9 +145,10 @@ writing anything and asks you to add a Status header yourself.
 - [x] **2. Sheet layer:** in-memory sheet, safe updater that only writes the Status column
 - [x] **3. Runner:** command-line run, dry-run mode, run log, `.env` loading
 - [x] **4. Claude summary:** structured output, tested with a fake client
-- [ ] **5. Real Google Sheet:** a test copy first
-- [ ] **6. Daily schedule**
-- [ ] **7. Real FedEx Track API:** needs a FedEx Developer account
+- [x] **5. Excel file workflow:** download, run, paste the Status column back
+- [ ] **6. Real FedEx Track API:** needs a FedEx Developer account
+- [ ] **7. Direct Google Sheets access:** needs a Google Cloud service account (IT)
+- [ ] **8. Daily schedule:** needs 7, so nobody has to download and paste
 
 ## Secrets
 

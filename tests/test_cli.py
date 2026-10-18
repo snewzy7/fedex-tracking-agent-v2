@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+from openpyxl import load_workbook
 
 from fake_claude import FakeClaude, answer_for
 
@@ -107,3 +108,33 @@ def test_no_summary_flag_skips_the_call(settings):
     client = FakeClaude(answer_for([]))
     main(["run", "--no-summary", "--today", "2026-10-18"], settings, claude_client=client)
     assert client.requests == []
+
+
+def test_xlsx_run_saves_an_updated_copy(settings, tmp_path, capsys):
+    download = DATA_DIR / "sample_tracking.xlsx"
+    before = download.read_bytes()
+    output = tmp_path / "updated.xlsx"
+
+    code = main(["run", "--xlsx", str(download), "--output", str(output), "--today", "2026-10-18"], settings)
+
+    assert code == 0
+    printed = capsys.readouterr().out
+    assert "MOCK provider" in printed
+    assert f"Updated copy saved to {output}" in printed
+    assert download.read_bytes() == before
+    assert load_workbook(output)["Manual Entries"]["J2"].value == "Delivered 10/15"
+
+
+def test_xlsx_dry_run_saves_nothing(settings, tmp_path):
+    output = tmp_path / "updated.xlsx"
+    main(["run", "--dry-run", "--xlsx", str(DATA_DIR / "sample_tracking.xlsx"), "--output", str(output)], settings)
+    assert not output.exists()
+
+
+def test_missing_or_unreadable_xlsx_gives_a_clear_message(settings, tmp_path, capsys):
+    assert main(["run", "--xlsx", str(tmp_path / "nope.xlsx")], settings) == 1
+    assert "not found" in capsys.readouterr().err
+    not_excel = tmp_path / "fake.xlsx"
+    not_excel.write_text("hello")
+    assert main(["run", "--xlsx", str(not_excel)], settings) == 1
+    assert "Couldn't open" in capsys.readouterr().err

@@ -2,6 +2,7 @@
 
     python -m shipment_tracker run              check every tab and update Status
     python -m shipment_tracker run --dry-run    show what would change, write nothing
+    python -m shipment_tracker run --xlsx FILE  use a sheet downloaded as Excel; saves a new copy
     python -m shipment_tracker test             run the tests and save the results
     python -m shipment_tracker reset-mock-sheet start the practice sheet over
 
@@ -13,6 +14,7 @@ code to decide whether to alert you.
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 import logging
 import subprocess
 import sys
@@ -25,6 +27,7 @@ from shipment_tracker.config import PROJECT_ROOT, ConfigError, Settings, load_se
 from shipment_tracker.pipeline import RunReport, run_check
 from shipment_tracker.run_log import save_report, setup_logging, timestamp
 from shipment_tracker.sheets.base import SheetClient
+from shipment_tracker.sheets.excel_file_sheet import ExcelFileSheet
 from shipment_tracker.sheets.json_file_sheet import JsonFileSheet, reset_working_copy
 from shipment_tracker.summarizer import IssueSummary, SummaryError, format_summary, summarize_problems
 from shipment_tracker.tracking.base import TrackingProvider
@@ -67,6 +70,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         "--recheck-delivered", action="store_true", help="also look up rows already marked Delivered"
     )
     run.add_argument("--no-summary", action="store_true", help="skip the Claude summary")
+    run.add_argument("--xlsx", type=Path, help="Excel file downloaded from Google Sheets (File > Download)")
+    run.add_argument("--output", type=Path, help="where to save the updated Excel copy (with --xlsx)")
 
     commands.add_parser("test", help="run the tests and save results to the log folder")
     commands.add_parser("reset-mock-sheet", help="restore the practice sheet from data/")
@@ -76,7 +81,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 def _run(args: argparse.Namespace, settings: Settings, claude_client: anthropic.Anthropic | None) -> int:
     setup_logging(settings.log_dir)
     try:
-        sheet = build_sheet(settings)
+        sheet = open_excel(args.xlsx) if args.xlsx else build_sheet(settings)
         provider = build_provider(settings)
     except ConfigError as error:
         print(f"Configuration problem: {error}", file=sys.stderr)
@@ -93,12 +98,19 @@ def _run(args: argparse.Namespace, settings: Settings, claude_client: anthropic.
     summary = add_summary(report, settings, skip=args.no_summary, client=claude_client)
     log_path = save_report(report, settings.log_dir)
 
+    if settings.tracking_provider == "mock":
+        print("NOTE: statuses come from the MOCK provider (synthetic data). Real tracking")
+        print("numbers will all show 'Lookup failed' until FedEx is connected.\n")
     print(format_report(report))
     if summary is not None:
         print("\n" + format_summary(summary, report.problems()))
     elif report.ai_summary_note:
         print(f"\nAI summary: {report.ai_summary_note}")
     print(f"\nFull report saved to {log_path}")
+    if isinstance(sheet, ExcelFileSheet) and not args.dry_run:
+        output = sheet.save(args.output or default_excel_output(settings, args.xlsx))
+        print(f"\nUpdated copy saved to {output}")
+        print("Paste its Status column into Google Sheets (see README: 'Excel file workflow').")
     # Summary problems don't change the exit code: the sheet update (the part
     # that matters most) already succeeded, and they're logged as warnings.
     return 1 if report.errors else 0
@@ -140,6 +152,19 @@ def build_sheet(settings: Settings) -> SheetClient:
     if settings.sheet_backend == "mock":
         return JsonFileSheet(settings.mock_sheet_file, settings.mock_sheet_template)
     raise ConfigError(f"SHEET_BACKEND '{settings.sheet_backend}' isn't available yet. Use 'mock'.")
+
+
+def open_excel(path: Path) -> ExcelFileSheet:
+    if not path.exists():
+        raise ConfigError(f"Excel file not found: {path}")
+    try:
+        return ExcelFileSheet(path)
+    except Exception as error:  # noqa: BLE001 - openpyxl raises several types for unreadable files
+        raise ConfigError(f"Couldn't open {path} as an Excel file: {error}") from error
+
+
+def default_excel_output(settings: Settings, input_path: Path) -> Path:
+    return settings.output_dir / f"{input_path.stem}-with-status-{timestamp()}.xlsx"
 
 
 def build_provider(settings: Settings) -> TrackingProvider:
