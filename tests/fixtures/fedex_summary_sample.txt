@@ -1,0 +1,43 @@
+Fedex Home
+Shipping
+Tracking
+Design & Print
+Locations
+Support
+
+Sample User
+
+FedEx
+®
+ Tracking
+Track Another Shipment
+
+Local Scan Time
+Help
+Summary Tracking Results
+Summary Tracking Results
+Tracking ID	Ship date	Shipper city, state	Recipient city, state	Status	Delivered date	Scheduled delivery date	Service
+100000000101	Will be updated soon	NEW YORK, NY	OMAHA, NE	
+Label created
+Will be updated soon	FedEx Ground
+100000000102	10/15/26	NEW YORK, NY	CHICAGO, IL	
+On the way
+Arrived at FedEx location
+10/19/26	FedEx Ground
+100000000103	10/16/26	NEW YORK, NY	SAN DIEGO, CA	
+On the way
+Departed FedEx location
+10/22/26	FedEx Ground
+100000000104	10/14/26	NEW YORK, NY	SANTA CLARITA, CA	
+On the way
+10/16/26	FedEx Ground
+Multi-piece shipment
+100000000105 (master)	10/14/26	NEW YORK, NY	TAMPA, FL	
+On the way
+10/19/26	FedEx Ground
+Our Company
+About FedEx
+Careers
+© FedEx 1995-2026
+Site Map
+Ask FedEx

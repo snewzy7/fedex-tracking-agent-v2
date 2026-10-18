@@ -5,6 +5,7 @@ import pytest
 from openpyxl import load_workbook
 
 from fake_claude import FakeClaude, answer_for
+from xlsx_helpers import write_workbook
 
 from shipment_tracker.cli import main, summarize_junit
 from shipment_tracker.config import load_settings
@@ -21,6 +22,7 @@ def settings(tmp_path):
             "MOCK_SHEET_FILE": str(tmp_path / "work" / "sheet.json"),
             "MOCK_TRACKING_FILE": str(DATA_DIR / "mock_shipments.json"),
             "LOG_DIR": str(tmp_path / "logs"),
+            "OUTPUT_DIR": str(tmp_path / "output"),
         }
     )
 
@@ -138,3 +140,49 @@ def test_missing_or_unreadable_xlsx_gives_a_clear_message(settings, tmp_path, ca
     not_excel.write_text("hello")
     assert main(["run", "--xlsx", str(not_excel)], settings) == 1
     assert "Couldn't open" in capsys.readouterr().err
+
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def fedex_sheet(tmp_path):
+    """A downloaded-sheet file whose tracking numbers match the FedEx paste fixture."""
+    header = ["", "Date", "Name", "Address", "Address 2", "City", "State", "Zip Code", "Kit Quantity", "Tracking"]
+    rows = [header] + [
+        ["", "10/14/2026", f"Account {n}", "1 Main St", "", "Omaha", "NE", "68102", "1", f"10000000010{n}"]
+        for n in range(1, 6)
+    ] + [["", "10/14/2026", "Account 6", "1 Main St", "", "Omaha", "NE", "68102", "1", "100000000999"]]
+    return write_workbook({"Form Responses 1": [["Tracking"]], "Manual Entry": rows}, tmp_path / "sheet.xlsx")
+
+
+def test_run_with_fedex_paste_uses_real_fedex_statuses(settings, tmp_path, capsys):
+    output = tmp_path / "updated.xlsx"
+    code = main(
+        ["run", "--xlsx", str(fedex_sheet(tmp_path)), "--fedex-paste", str(FIXTURES / "fedex_summary_sample.txt"),
+         "--output", str(output), "--today", "2026-10-18", "--no-summary"],
+        settings,
+    )
+    assert code == 0
+    printed = capsys.readouterr().out
+    assert "MOCK provider" not in printed
+    sheet = load_workbook(output)["Manual Entry"]
+    assert sheet["K2"].value == "Label created, no ETA yet"
+    assert sheet["K3"].value == "In transit, ETA 10/19"
+    assert sheet["K5"].value == "Delayed: ETA was 10/16 (in transit)"
+    assert sheet["K7"].value.startswith("Lookup failed: Not in the pasted FedEx results")
+
+
+def test_batches_command_lists_numbers_and_saves_files(settings, tmp_path, capsys):
+    assert main(["batches", "--xlsx", str(fedex_sheet(tmp_path))], settings) == 0
+    printed = capsys.readouterr().out
+    assert "6 tracking numbers to check, in 1 batch(es)" in printed
+    assert (settings.output_dir / "fedex-batch-1.txt").read_text().split() == [
+        "100000000101", "100000000102", "100000000103", "100000000104", "100000000105", "100000000999"
+    ]
+
+
+def test_wrong_paste_file_gives_a_clear_message(settings, tmp_path, capsys):
+    wrong = tmp_path / "notes.txt"
+    wrong.write_text("just some notes")
+    assert main(["run", "--xlsx", str(fedex_sheet(tmp_path)), "--fedex-paste", str(wrong)], settings) == 1
+    assert "Summary Tracking Results" in capsys.readouterr().err

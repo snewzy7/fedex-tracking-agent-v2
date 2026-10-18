@@ -3,6 +3,8 @@
     python -m shipment_tracker run              check every tab and update Status
     python -m shipment_tracker run --dry-run    show what would change, write nothing
     python -m shipment_tracker run --xlsx FILE  use a sheet downloaded as Excel; saves a new copy
+    python -m shipment_tracker batches --xlsx FILE          numbers to paste into fedex.com, 30 at a time
+    python -m shipment_tracker run --xlsx FILE --fedex-paste PASTE.txt ...   use FedEx's pasted results
     python -m shipment_tracker test             run the tests and save the results
     python -m shipment_tracker reset-mock-sheet start the practice sheet over
 
@@ -14,15 +16,16 @@ code to decide whether to alert you.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import logging
 import subprocess
 import sys
 import xml.etree.ElementTree as ElementTree
 from datetime import date
+from pathlib import Path
 
 import anthropic
 
+from shipment_tracker.batches import make_batches, numbers_to_check
 from shipment_tracker.config import PROJECT_ROOT, ConfigError, Settings, load_settings
 from shipment_tracker.pipeline import RunReport, run_check
 from shipment_tracker.run_log import save_report, setup_logging, timestamp
@@ -31,6 +34,7 @@ from shipment_tracker.sheets.excel_file_sheet import ExcelFileSheet
 from shipment_tracker.sheets.json_file_sheet import JsonFileSheet, reset_working_copy
 from shipment_tracker.summarizer import IssueSummary, SummaryError, format_summary, summarize_problems
 from shipment_tracker.tracking.base import TrackingProvider
+from shipment_tracker.tracking.fedex_paste_provider import FedExPasteProvider
 from shipment_tracker.tracking.mock_provider import MockTrackingProvider
 
 logger = logging.getLogger(__name__)
@@ -50,6 +54,8 @@ def main(
 
     if args.command == "run":
         return _run(args, settings, claude_client)
+    if args.command == "batches":
+        return _batches(args, settings)
     if args.command == "test":
         return _test(settings)
     if args.command == "reset-mock-sheet":
@@ -72,6 +78,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     run.add_argument("--no-summary", action="store_true", help="skip the Claude summary")
     run.add_argument("--xlsx", type=Path, help="Excel file downloaded from Google Sheets (File > Download)")
     run.add_argument("--output", type=Path, help="where to save the updated Excel copy (with --xlsx)")
+    run.add_argument(
+        "--fedex-paste", type=Path, nargs="+", metavar="FILE",
+        help="text file(s) of FedEx's Summary Tracking Results page, copied with Cmd+A, Cmd+C",
+    )
+
+    batches = commands.add_parser("batches", help="list tracking numbers to paste into fedex.com, 30 at a time")
+    batches.add_argument("--xlsx", type=Path, help="Excel file downloaded from Google Sheets")
 
     commands.add_parser("test", help="run the tests and save results to the log folder")
     commands.add_parser("reset-mock-sheet", help="restore the practice sheet from data/")
@@ -82,7 +95,7 @@ def _run(args: argparse.Namespace, settings: Settings, claude_client: anthropic.
     setup_logging(settings.log_dir)
     try:
         sheet = open_excel(args.xlsx) if args.xlsx else build_sheet(settings)
-        provider = build_provider(settings)
+        provider = open_fedex_paste(args.fedex_paste) if args.fedex_paste else build_provider(settings)
     except ConfigError as error:
         print(f"Configuration problem: {error}", file=sys.stderr)
         return 1
@@ -98,7 +111,7 @@ def _run(args: argparse.Namespace, settings: Settings, claude_client: anthropic.
     summary = add_summary(report, settings, skip=args.no_summary, client=claude_client)
     log_path = save_report(report, settings.log_dir)
 
-    if settings.tracking_provider == "mock":
+    if not args.fedex_paste and settings.tracking_provider == "mock":
         print("NOTE: statuses come from the MOCK provider (synthetic data). Real tracking")
         print("numbers will all show 'Lookup failed' until FedEx is connected.\n")
     print(format_report(report))
@@ -161,6 +174,41 @@ def open_excel(path: Path) -> ExcelFileSheet:
         return ExcelFileSheet(path)
     except Exception as error:  # noqa: BLE001 - openpyxl raises several types for unreadable files
         raise ConfigError(f"Couldn't open {path} as an Excel file: {error}") from error
+
+
+def open_fedex_paste(paths: list[Path]) -> FedExPasteProvider:
+    missing = [str(p) for p in paths if not p.exists()]
+    if missing:
+        raise ConfigError(f"FedEx paste file(s) not found: {missing}")
+    try:
+        return FedExPasteProvider.from_files(paths)
+    except ValueError as error:
+        raise ConfigError(str(error)) from error
+
+
+def _batches(args: argparse.Namespace, settings: Settings) -> int:
+    try:
+        sheet = open_excel(args.xlsx) if args.xlsx else build_sheet(settings)
+        groups = make_batches(numbers_to_check(sheet, settings.tabs))
+    except Exception as error:  # noqa: BLE001 - show any problem plainly; nothing is written
+        print(f"Couldn't list tracking numbers: {error}", file=sys.stderr)
+        return 1
+    if not groups:
+        print("Nothing to check: every row is blank, unusable, or already Delivered.")
+        return 0
+
+    settings.output_dir.mkdir(parents=True, exist_ok=True)
+    total = sum(len(g) for g in groups)
+    print(f"{total} tracking numbers to check, in {len(groups)} batch(es) of up to 30.\n")
+    for number, group in enumerate(groups, start=1):
+        path = settings.output_dir / f"fedex-batch-{number}.txt"
+        path.write_text("\n".join(group) + "\n")
+        print(f"--- Batch {number} ({len(group)} numbers, also saved to {path}) ---")
+        print("\n".join(group))
+        print()
+    print("For each batch: paste the numbers into the tracking box on fedex.com, then on the")
+    print("results page press Cmd+A, Cmd+C and paste into a text file (one file per batch).")
+    return 0
 
 
 def default_excel_output(settings: Settings, input_path: Path) -> Path:

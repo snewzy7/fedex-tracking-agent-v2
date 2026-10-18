@@ -5,9 +5,9 @@ number, writes a status next to it (green when delivered), and flags
 delays, exceptions, and failed lookups. Claude summarizes the problems and
 suggests next steps.
 
-> **Current stage:** Milestone 5. Works on an Excel file downloaded from
-> Google Sheets. Tracking statuses are still synthetic (mock provider) until
-> FedEx is connected. The Claude summary runs only if you set an API key.
+> **Current stage:** Milestone 6. Real FedEx statuses, copied from fedex.com's
+> multi-tracking page (no API needed), applied to an Excel download of the
+> Google Sheet. The Claude summary runs only if you set an API key.
 
 ## How it fits together
 
@@ -26,6 +26,8 @@ Sheet rows ──▶ look_up() ──▶ classify() ──▶ status_cell() ─�
 | `models.py` | Shared data shapes: `TrackingResult`, `TrackingStatus`, `Flag` |
 | `tracking_numbers.py` | Cleans up the Tracking cell (spaces, dashes, Sheets' scientific notation) |
 | `tracking/base.py` | The contract every tracking provider follows |
+| `tracking/fedex_paste_provider.py` | Reads FedEx's pasted *Summary Tracking Results* page |
+| `batches.py` | Splits the numbers still to check into groups of 30 for fedex.com |
 | `tracking/mock_provider.py` | Fake provider serving `data/mock_shipments.json` |
 | `tracking/lookup.py` | Safe lookup: always returns a real status or a recorded failure |
 | `rules.py` | Decides the flag: delivered / on track / delayed / exception / lookup failed |
@@ -73,6 +75,31 @@ python -m shipment_tracker reset-mock-sheet # start the practice sheet over
 attention. Failed lookups are *not* errors: they show in the sheet as
 "Lookup failed" so someone can fix the tracking number. Errors are problems
 with a tab (missing, bad layout) or unexpected crashes on a row.
+
+## Weekly workflow: real FedEx statuses, no API
+
+1. **Download your tracker.** In Google Sheets: *File > Download > Microsoft Excel (.xlsx)*.
+2. **Get the numbers to check:**
+   ```bash
+   python -m shipment_tracker batches --xlsx ~/Downloads/your-file.xlsx
+   ```
+   This prints the tracking numbers that still need checking (rows already
+   marked Delivered are skipped) in batches of up to 30, and saves each batch
+   as `output/fedex-batch-1.txt`, `-2.txt`, and so on.
+3. **Look them up on fedex.com.** For each batch: paste its numbers into the
+   tracking box, then on the *Summary Tracking Results* page press **Cmd+A**,
+   **Cmd+C**, and paste into a new TextEdit file. Save it as plain text
+   (*Format > Make Plain Text*), e.g. `~/Downloads/fedex-1.txt`.
+4. **Run:**
+   ```bash
+   python -m shipment_tracker run --xlsx ~/Downloads/your-file.xlsx --fedex-paste ~/Downloads/fedex-1.txt ~/Downloads/fedex-2.txt
+   ```
+5. **Paste the Status column back** (see below).
+
+Every status comes from FedEx's own page. A number that wasn't in any paste,
+or a row the tool can't read clearly, shows *Lookup failed* with the reason.
+If FedEx shows a status word the tool hasn't seen before, it reports it
+instead of guessing; tell Claude the wording and it can be added.
 
 ## Excel file workflow (until Google Sheets access is set up)
 
@@ -149,9 +176,10 @@ you to insert an empty column after Tracking and type `Status` as its header.
 - [x] **3. Runner:** command-line run, dry-run mode, run log, `.env` loading
 - [x] **4. Claude summary:** structured output, tested with a fake client
 - [x] **5. Excel file workflow:** download, run, paste the Status column back
-- [ ] **6. Real FedEx Track API:** needs a FedEx Developer account
-- [ ] **7. Direct Google Sheets access:** needs a Google Cloud service account (IT)
-- [ ] **8. Daily schedule:** needs 7, so nobody has to download and paste
+- [x] **6. Real FedEx statuses (no API):** paste fedex.com's multi-tracking results
+- [ ] **7. FedEx Track API (optional):** removes the copy/paste step
+- [ ] **8. Direct Google Sheets access:** needs a Google Cloud service account (IT)
+- [ ] **9. Daily schedule:** needs 7 and 8, so nobody has to download and paste
 
 ## Secrets
 
