@@ -30,14 +30,14 @@ def test_cell_values_become_the_text_sheets_shows(value, text):
 def test_reads_tabs_from_a_sheets_style_download(tmp_path):
     path = write_workbook(mock_tabs(), tmp_path / "download.xlsx")
     rows = ExcelFileSheet(path).read_tab("Form Responses 1")
-    assert rows[0][8] == "Tracking"
+    assert rows[0][10] == "Tracking"
     assert rows[1][0] == "10/6/2026"  # stored as a date in the file
-    assert rows[1][8] == "100000000001"  # stored as a number in the file
+    assert rows[1][10] == "100000000001"  # stored as a number in the file
 
 
 def test_unknown_tab_lists_the_tabs_that_exist(tmp_path):
     path = write_workbook(mock_tabs(), tmp_path / "download.xlsx")
-    with pytest.raises(TabNotFound, match="Manual Entries"):
+    with pytest.raises(TabNotFound, match="Manual Entry"):
         ExcelFileSheet(path).read_tab("Typo")
 
 
@@ -51,10 +51,10 @@ def test_saves_text_and_fill_to_a_new_file_and_leaves_the_download_alone(tmp_pat
 
     assert path.read_bytes() == original_bytes
     saved = load_workbook(output)["Form Responses 1"]
-    assert saved["J1"].value == "Status"
-    assert saved["J2"].value == "Delivered 10/14"
-    assert saved["J2"].fill.start_color.rgb.endswith("B7E1CD")
-    assert saved["B2"].value == "Avery Example"  # human columns untouched
+    assert saved["L1"].value == "Status"
+    assert saved["L2"].value == "Delivered 10/14"
+    assert saved["L2"].fill.start_color.rgb.endswith("B7E1CD")
+    assert saved["C2"].value == "Example Tavern"  # human columns untouched
 
 
 def test_clearing_a_color_removes_the_fill(tmp_path):

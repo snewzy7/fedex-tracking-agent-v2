@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DEFAULTS = {
-    "SHEET_TABS": "Form Responses 1,Manual Entries",
+    "SHEET_TABS": "Form Responses 1,Manual Entry",
     "SHEET_BACKEND": "mock",
     "MOCK_SHEET_TEMPLATE": str(PROJECT_ROOT / "data" / "mock_sheet.json"),
     "MOCK_SHEET_FILE": str(PROJECT_ROOT / "work" / "mock_sheet.json"),

@@ -132,12 +132,15 @@ Everything goes in `logs/` (git-ignored):
 
 ## Sheet layout
 
-Two tabs, *Form Responses 1* and *Manual Entries*, with the columns:
-Date, Name, Address, Address 2, City, State, ZIP code, Kit quantity, Tracking.
-The tool adds a **Status** header in the empty column after Tracking (or uses an
-existing Status column anywhere) and only ever writes to that column. If the
-column after Tracking is already used for something else, it stops without
-writing anything and asks you to add a Status header yourself.
+Two tabs, *Form Responses 1* (Google Form answers: Timestamp, Account Name,
+Shipping Address, City & State, ..., Tracking) and *Manual Entry* (Date, Name,
+Address, Address 2, City, State, Zip Code, Kit Quantity, Tracking). Columns are
+found by header name, so their order doesn't matter. Only **Tracking** is required.
+
+The tool writes to a column headed **Status**. If there isn't one, it uses the
+column right after Tracking, but only if that column is completely empty
+(header *and* every cell). Otherwise it stops without writing anything and asks
+you to insert an empty column after Tracking and type `Status` as its header.
 
 ## Roadmap
 

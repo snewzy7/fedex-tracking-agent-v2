@@ -1,20 +1,20 @@
 {
-  "_comment": "SYNTHETIC DATA ONLY. Made-up names and addresses shaped like the real tracking sheet.",
+  "_comment": "SYNTHETIC DATA ONLY. Made-up accounts and addresses, laid out like the real order-form sheet (same tab names and headers).",
   "tabs": {
     "Form Responses 1": [
-      ["Date", "Name", "Address", "Address 2", "City", "State", "ZIP code", "Kit quantity", "Tracking"],
-      ["10/6/2026", "Avery Example", "100 Sample St", "", "Columbus", "OH", "43004", "2", "100000000001"],
-      ["10/7/2026", "Jordan Placeholder", "22 Test Ave", "Suite 4", "Denver", "CO", "80014", "1", "1000 0000 0003"],
-      ["10/8/2026", "Riley Demo", "9 Mock Rd", "", "Austin", "TX", "73301", "3", "100000000006"],
-      ["10/9/2026", "Casey Fiction", "450 Fake Blvd", "", "Tampa", "FL", "33601", "1", "100000000007"],
-      ["10/10/2026", "Morgan Sample", "7 Pretend Ln", "Apt 2B", "Portland", "OR", "97035", "2", ""],
-      ["10/10/2026", "Quinn Invented", "31 Imaginary Way", "", "Raleigh", "NC", "27601", "1", "1.00000E+11"]
+      ["Timestamp", "Quantity of Santa Pants Cocktail \"Garnishes\" Requested (150 per order)", "Account Name", "Shipping Address", "City & State", "Zip Code", "Contact Phone Number", "Email", "Preferred Delivery Window", "Account Instagram Handle (for Social Promotions)", "Tracking"],
+      ["10/6/2026", "1", "Example Tavern", "100 Sample St", "Columbus, OH", "43004", "", "", "Week of November 2 (first available)", "", "100000000001"],
+      ["10/7/2026", "2", "Placeholder Lounge", "22 Test Ave Suite 4", "Denver, CO", "80014", "", "", "Week of November 2 (first available)", "@placeholderlounge", "1000 0000 0003"],
+      ["10/8/2026", "1", "Demo Bar & Grill", "9 Mock Rd", "Austin, TX", "73301", "", "", "Week of November 2 (first available)", "", "100000000006"],
+      ["10/9/2026", "1", "Fiction Pub", "450 Fake Blvd", "Tampa, FL", "33601", "", "", "Week of November 2 (first available)", "", "100000000007"],
+      ["10/10/2026", "3", "Sample Spirits Co", "7 Pretend Ln Apt 2B", "Portland, OR", "97035", "", "", "Week of November 2 (first available)", "", ""],
+      ["10/10/2026", "1", "Invented Inn", "31 Imaginary Way", "Raleigh, NC", "27601", "", "", "Week of November 2 (first available)", "", "1.00000E+11"]
     ],
-    "Manual Entries": [
-      ["Date", "Name", "Address", "Address 2", "City", "State", "ZIP code", "Kit quantity", "Tracking"],
-      ["10/5/2026", "Taylor Madeup", "8 Nowhere Ct", "", "Boise", "ID", "83702", "4", "100000000002"],
-      ["10/9/2026", "Drew Synthetic", "64 Specimen Dr", "", "Omaha", "NE", "68102", "1", "100000000009"],
-      ["10/11/2026", "Sam Notreal", "12 Hypothetical Pl", "", "Madison", "WI", "53703", "2", "999999999999"]
+    "Manual Entry": [
+      ["", "Date", "Name", "Address", "Address 2", "City", "State", "Zip Code", "Kit Quantity", "Tracking"],
+      ["Holiday 26", "10/5/2026", "Madeup Taproom", "8 Nowhere Ct", "", "Boise", "ID", "83702", "4", "100000000002"],
+      ["Holiday 26", "10/9/2026", "Synthetic Saloon", "64 Specimen Dr", "", "Omaha", "NE", "68102", "1", "100000000009"],
+      ["Holiday 26", "10/11/2026", "Notreal Brewhouse", "12 Hypothetical Pl", "", "Madison", "WI", "53703", "2", "999999999999"]
     ]
   }
 }

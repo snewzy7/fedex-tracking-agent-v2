@@ -35,10 +35,10 @@ def test_run_updates_the_working_sheet_and_saves_a_report(settings, capsys):
     assert code == 0
     output = capsys.readouterr().out
     assert "Needs attention" in output
-    assert "Riley Demo" in output  # the delayed package
+    assert "Demo Bar & Grill" in output  # the delayed package
 
     sheet = json.loads(settings.mock_sheet_file.read_text())
-    assert sheet["tabs"]["Form Responses 1"][1][9] == "Delivered 10/14"
+    assert sheet["tabs"]["Form Responses 1"][1][11] == "Delivered 10/14"
 
     [report_file] = run_files(settings)
     report = json.loads(report_file.read_text())
@@ -101,7 +101,7 @@ def test_rejected_summary_is_a_warning_not_a_failed_run(settings, capsys):
     assert main(["run", "--today", "2026-10-18"], settings, claude_client=client) == 0
     assert "AI summary: skipped" in capsys.readouterr().out
     sheet = json.loads(settings.mock_sheet_file.read_text())
-    assert sheet["tabs"]["Form Responses 1"][1][9] == "Delivered 10/14"  # sheet still updated
+    assert sheet["tabs"]["Form Responses 1"][1][11] == "Delivered 10/14"  # sheet still updated
 
 
 def test_no_summary_flag_skips_the_call(settings):
@@ -122,7 +122,7 @@ def test_xlsx_run_saves_an_updated_copy(settings, tmp_path, capsys):
     assert "MOCK provider" in printed
     assert f"Updated copy saved to {output}" in printed
     assert download.read_bytes() == before
-    assert load_workbook(output)["Manual Entries"]["J2"].value == "Delivered 10/15"
+    assert load_workbook(output)["Manual Entry"]["K2"].value == "Delivered 10/15"
 
 
 def test_xlsx_dry_run_saves_nothing(settings, tmp_path):

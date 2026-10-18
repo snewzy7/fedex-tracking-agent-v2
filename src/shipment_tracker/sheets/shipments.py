@@ -7,18 +7,20 @@ from dataclasses import dataclass
 from shipment_tracker.sheets.base import SheetClient
 from shipment_tracker.sheets.layout import STATUS_HEADER, find_column, tracking_column
 
-# Shipment field -> header text in the sheet. Only Tracking is required;
-# a missing optional column just leaves that field blank.
+# Shipment field -> header names it may have in the sheet, first match wins.
+# The two tabs name things differently (the form says "Account Name", the
+# manual tab says "Name"). Only Tracking is required; a missing optional
+# column just leaves that field blank.
 FIELD_HEADERS = {
-    "date": "Date",
-    "name": "Name",
-    "address": "Address",
-    "address_2": "Address 2",
-    "city": "City",
-    "state": "State",
-    "zip_code": "ZIP code",
-    "kit_quantity": "Kit quantity",
-    "status": STATUS_HEADER,
+    "date": ["Date", "Timestamp"],
+    "name": ["Name", "Account Name"],
+    "address": ["Address", "Shipping Address"],
+    "address_2": ["Address 2"],
+    "city": ["City", "City & State"],
+    "state": ["State"],
+    "zip_code": ["ZIP code"],
+    "kit_quantity": ["Kit quantity"],
+    "status": [STATUS_HEADER],
 }
 
 
@@ -50,7 +52,7 @@ def read_shipments(sheet: SheetClient, tab: str) -> list[Shipment]:
     header, data_rows = rows[0], rows[1:]
 
     tracking_col = tracking_column(header)
-    field_cols = {field: find_column(header, text) for field, text in FIELD_HEADERS.items()}
+    field_cols = {field: _first_column(header, names) for field, names in FIELD_HEADERS.items()}
 
     shipments = []
     for row_number, row in enumerate(data_rows, start=2):
@@ -60,6 +62,14 @@ def read_shipments(sheet: SheetClient, tab: str) -> list[Shipment]:
         fields = {field: _cell(row, col) for field, col in field_cols.items()}
         shipments.append(Shipment(tab=tab, row_number=row_number, tracking=tracking, **fields))
     return shipments
+
+
+def _first_column(header: list[str], names: list[str]) -> int | None:
+    for name in names:
+        column = find_column(header, name)
+        if column is not None:
+            return column
+    return None
 
 
 def _cell(row: list[str], column: int | None) -> str:

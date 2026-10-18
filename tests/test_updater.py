@@ -78,9 +78,9 @@ def test_same_tracking_number_on_two_rows_updates_both():
 
 
 def test_rows_without_a_status_are_left_alone():
-    sheet = make_sheet([*row("Avery", "111111111111"), "Old note someone typed"])
+    sheet = MemorySheet({"T": [[*HEADER, "Status"], [*row("Avery", "111111111111"), "Old status"]]})
     update_statuses(sheet, "T", {})
-    assert sheet.read_tab("T")[1][9] == "Old note someone typed"
+    assert sheet.read_tab("T")[1][9] == "Old status"
 
 
 def test_unchanged_statuses_are_not_rewritten():
@@ -151,3 +151,11 @@ def test_check_layout_catches_problems_before_any_lookups():
     bad = MemorySheet({"T": [[*HEADER, "Notes"]]})
     with pytest.raises(SheetLayoutError):
         check_layout(bad, "T")
+
+
+def test_never_writes_over_an_unlabeled_column_with_data():
+    sheet = make_sheet([*row("Avery", "111111111111"), "someone's note"])
+    with pytest.raises(SheetLayoutError):
+        update_statuses(sheet, "T", {"111111111111": DELIVERED})
+    assert sheet.read_tab("T")[1][9] == "someone's note"
+    assert sheet.write_calls == 0

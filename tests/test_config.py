@@ -6,7 +6,7 @@ from shipment_tracker.config import ConfigError, load_settings
 
 def test_defaults_match_the_real_sheet_tabs():
     settings = load_settings({})
-    assert settings.tabs == ("Form Responses 1", "Manual Entries")
+    assert settings.tabs == ("Form Responses 1", "Manual Entry")
     assert settings.tracking_provider == "mock"
     assert settings.sheet_backend == "mock"
 

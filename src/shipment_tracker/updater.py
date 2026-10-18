@@ -39,7 +39,7 @@ def plan_status_updates(
         return []
     header = rows[0]
     tracking_col = tracking_column(header)
-    target = status_column(header)
+    target = status_column(rows)
 
     updates = []
     for row_number, row in enumerate(rows[1:], start=2):
@@ -63,15 +63,14 @@ def check_layout(sheet: SheetClient, tab: str) -> None:
     """
     rows = sheet.read_tab(tab)
     if rows:
-        status_column(rows[0])  # also checks the Tracking column exists
+        status_column(rows)  # also checks the Tracking column exists
 
 
 def apply_status_updates(sheet: SheetClient, tab: str, updates: list[CellUpdate]) -> None:
     """Write planned updates after double-checking every cell is ours to write."""
     if not updates:
         return
-    header = sheet.read_tab(tab)[0]
-    allowed_column = _allowed_status_column(header, updates)
+    allowed_column = _allowed_status_column(sheet.read_tab(tab), updates)
 
     for update in updates:
         if update.column != allowed_column:
@@ -94,8 +93,8 @@ def update_statuses(sheet: SheetClient, tab: str, statuses: dict[str, StatusCell
     return updates
 
 
-def _allowed_status_column(header: list[str], updates: list[CellUpdate]) -> int:
-    target = status_column(header)
+def _allowed_status_column(rows: list[list[str]], updates: list[CellUpdate]) -> int:
+    target = status_column(rows)
     if target.needs_header and not any(u.row == 1 and u.text == STATUS_HEADER for u in updates):
         raise SheetLayoutError("The Status header is missing and this batch doesn't create it.")
     return target.column

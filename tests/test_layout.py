@@ -20,23 +20,35 @@ def test_missing_tracking_column_is_an_error():
 
 
 def test_missing_status_goes_right_after_tracking():
-    target = status_column(HEADER)
+    target = status_column([HEADER])
     assert target.column == 10
     assert target.needs_header
 
 
 def test_existing_status_column_is_used_wherever_it_is():
-    target = status_column(["Status", *HEADER])
+    target = status_column([["Status", *HEADER]])
     assert target.column == 1
     assert not target.needs_header
 
 
 def test_blank_header_after_tracking_can_become_status():
-    target = status_column([*HEADER, "", "Notes"])
+    target = status_column([[*HEADER, "", "Notes"]])
     assert target.column == 10
     assert target.needs_header
 
 
 def test_refuses_to_take_over_a_column_that_belongs_to_something_else():
     with pytest.raises(SheetLayoutError, match="already used for 'Notes'"):
-        status_column([*HEADER, "Notes"])
+        status_column([[*HEADER, "Notes"]])
+
+
+def test_refuses_an_unlabeled_column_that_still_has_data():
+    # Real-world case: no header after Tracking, but people typed notes there.
+    rows = [HEADER, ["", "", "", "", "", "", "", "", "123456789012", "Some note"], [""] * 9]
+    with pytest.raises(SheetLayoutError, match="no header but 1 filled cell"):
+        status_column(rows)
+
+
+def test_unlabeled_column_with_only_empty_cells_is_fine():
+    rows = [HEADER, [*[""] * 8, "123456789012", "   "], [*[""] * 8, "123456789012"]]
+    assert status_column(rows).column == 10

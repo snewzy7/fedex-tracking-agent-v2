@@ -42,4 +42,4 @@ def test_empty_tab_returns_nothing():
 def test_bundled_mock_sheet_reads_both_tabs():
     sheet = MemorySheet.from_json_file(DATA_FILE)
     assert len(read_shipments(sheet, "Form Responses 1")) == 5  # one row has blank tracking
-    assert len(read_shipments(sheet, "Manual Entries")) == 3
+    assert len(read_shipments(sheet, "Manual Entry")) == 3
