@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 
+from fake_claude import FakeClaude, answer_for
+
 from shipment_tracker.cli import main, summarize_junit
 from shipment_tracker.config import load_settings
 
@@ -74,3 +76,34 @@ def test_junit_summary_counts(tmp_path):
     xml = tmp_path / "r.xml"
     xml.write_text('<testsuites><testsuite tests="10" failures="1" errors="0" skipped="2"/></testsuites>')
     assert summarize_junit(xml) == "passed=7 failed=1 errors=0 skipped=2"
+
+
+def test_run_without_api_key_skips_summary_but_succeeds(settings, capsys):
+    assert main(["run", "--today", "2026-10-18"], settings) == 0
+    assert "ANTHROPIC_API_KEY isn't set" in capsys.readouterr().out
+
+
+def test_run_with_fake_claude_prints_and_saves_the_summary(settings, capsys):
+    problem_trackings = ["100000000006", "100000000007", "1.00000E+11", "100000000009", "999999999999"]
+    client = FakeClaude(answer_for(problem_trackings))
+    assert main(["run", "--today", "2026-10-18"], settings, claude_client=client) == 0
+
+    output = capsys.readouterr().out
+    assert "AI summary (advice only" in output
+    assert "Next step: Contact FedEx." in output
+    [report_file] = run_files(settings)
+    assert len(json.loads(report_file.read_text())["ai_summary"]["issues"]) == 5
+
+
+def test_rejected_summary_is_a_warning_not_a_failed_run(settings, capsys):
+    client = FakeClaude(answer_for(["555555555555"]))
+    assert main(["run", "--today", "2026-10-18"], settings, claude_client=client) == 0
+    assert "AI summary: skipped" in capsys.readouterr().out
+    sheet = json.loads(settings.mock_sheet_file.read_text())
+    assert sheet["tabs"]["Form Responses 1"][1][9] == "Delivered 10/14"  # sheet still updated
+
+
+def test_no_summary_flag_skips_the_call(settings):
+    client = FakeClaude(answer_for([]))
+    main(["run", "--no-summary", "--today", "2026-10-18"], settings, claude_client=client)
+    assert client.requests == []

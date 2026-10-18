@@ -6,6 +6,8 @@ requires-python = ">=3.10"
 # Runtime dependencies are added milestone by milestone, only when the code needs them.
 dependencies = [
     "python-dotenv>=1.0",  # reads settings and secrets from a .env file
+    "anthropic>=1.15",  # official Claude SDK (AI summary)
+    "pydantic>=2",  # checks the shape of Claude's answer
 ]
 
 [project.optional-dependencies]

@@ -13,21 +13,31 @@ code to decide whether to alert you.
 from __future__ import annotations
 
 import argparse
+import logging
 import subprocess
 import sys
 import xml.etree.ElementTree as ElementTree
 from datetime import date
+
+import anthropic
 
 from shipment_tracker.config import PROJECT_ROOT, ConfigError, Settings, load_settings
 from shipment_tracker.pipeline import RunReport, run_check
 from shipment_tracker.run_log import save_report, setup_logging, timestamp
 from shipment_tracker.sheets.base import SheetClient
 from shipment_tracker.sheets.json_file_sheet import JsonFileSheet, reset_working_copy
+from shipment_tracker.summarizer import IssueSummary, SummaryError, format_summary, summarize_problems
 from shipment_tracker.tracking.base import TrackingProvider
 from shipment_tracker.tracking.mock_provider import MockTrackingProvider
 
+logger = logging.getLogger(__name__)
 
-def main(argv: list[str] | None = None, settings: Settings | None = None) -> int:
+
+def main(
+    argv: list[str] | None = None,
+    settings: Settings | None = None,
+    claude_client: anthropic.Anthropic | None = None,  # tests pass a fake one
+) -> int:
     args = _parse_args(argv)
     try:
         settings = settings or load_settings()
@@ -36,7 +46,7 @@ def main(argv: list[str] | None = None, settings: Settings | None = None) -> int
         return 1
 
     if args.command == "run":
-        return _run(args, settings)
+        return _run(args, settings, claude_client)
     if args.command == "test":
         return _test(settings)
     if args.command == "reset-mock-sheet":
@@ -56,13 +66,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     run.add_argument(
         "--recheck-delivered", action="store_true", help="also look up rows already marked Delivered"
     )
+    run.add_argument("--no-summary", action="store_true", help="skip the Claude summary")
 
     commands.add_parser("test", help="run the tests and save results to the log folder")
     commands.add_parser("reset-mock-sheet", help="restore the practice sheet from data/")
     return parser.parse_args(argv)
 
 
-def _run(args: argparse.Namespace, settings: Settings) -> int:
+def _run(args: argparse.Namespace, settings: Settings, claude_client: anthropic.Anthropic | None) -> int:
     setup_logging(settings.log_dir)
     try:
         sheet = build_sheet(settings)
@@ -79,10 +90,50 @@ def _run(args: argparse.Namespace, settings: Settings) -> int:
         dry_run=args.dry_run,
         recheck_delivered=args.recheck_delivered,
     )
+    summary = add_summary(report, settings, skip=args.no_summary, client=claude_client)
     log_path = save_report(report, settings.log_dir)
+
     print(format_report(report))
+    if summary is not None:
+        print("\n" + format_summary(summary, report.problems()))
+    elif report.ai_summary_note:
+        print(f"\nAI summary: {report.ai_summary_note}")
     print(f"\nFull report saved to {log_path}")
+    # Summary problems don't change the exit code: the sheet update (the part
+    # that matters most) already succeeded, and they're logged as warnings.
     return 1 if report.errors else 0
+
+
+def add_summary(
+    report: RunReport, settings: Settings, skip: bool, client: anthropic.Anthropic | None
+) -> IssueSummary | None:
+    """Ask Claude for a summary of the problem rows and attach it to the report."""
+    problems = report.problems()
+    if skip:
+        report.ai_summary_note = "skipped (--no-summary)."
+        return None
+    if not problems:
+        report.ai_summary_note = "no problems to summarize."
+        return None
+    if client is None and not settings.has_anthropic_key:
+        report.ai_summary_note = "skipped: ANTHROPIC_API_KEY isn't set (see .env.example)."
+        return None
+
+    try:
+        summary = summarize_problems(
+            problems, report.today, client or anthropic.Anthropic(), settings.anthropic_model
+        )
+    except SummaryError as error:
+        logger.warning("AI summary skipped: %s", error)
+        report.ai_summary_note = f"skipped: {error}"
+        return None
+    except Exception as error:  # noqa: BLE001 - a summary bug must not lose the run report
+        logger.exception("AI summary crashed")
+        report.ai_summary_note = f"skipped after an unexpected error: {type(error).__name__}: {error}"
+        return None
+
+    report.ai_summary = summary.model_dump()
+    return summary
 
 
 def build_sheet(settings: Settings) -> SheetClient:

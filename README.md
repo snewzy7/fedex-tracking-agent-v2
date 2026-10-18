@@ -5,8 +5,8 @@ number, writes a status next to it (green when delivered), and flags
 delays, exceptions, and failed lookups. Claude summarizes the problems and
 suggests next steps.
 
-> **Current stage:** Milestone 3. Synthetic data only. No real shipments,
-> no Google Sheets, no AI calls yet.
+> **Current stage:** Milestone 4. Synthetic data only. No real shipments or
+> Google Sheets yet. The Claude summary runs only if you set an API key.
 
 ## How it fits together
 
@@ -38,6 +38,7 @@ Sheet rows ──▶ look_up() ──▶ classify() ──▶ status_cell() ─�
 | `pipeline.py` | One full check of every tab, producing a `RunReport` |
 | `run_log.py` | Text log, one JSON report per run |
 | `config.py` | Settings from environment variables / `.env` |
+| `summarizer.py` | The only AI: Claude explains flagged rows and suggests next steps; answer is checked |
 | `cli.py` | The `python -m shipment_tracker ...` commands |
 
 **Delayed** means not delivered and today is past the ETA.
@@ -60,6 +61,7 @@ python -m shipment_tracker run --dry-run    # show what would change, write noth
 python -m shipment_tracker run              # check every tab and update Status
 python -m shipment_tracker run --today 2026-10-25   # pretend it's another day
 python -m shipment_tracker run --recheck-delivered  # also re-check Delivered rows
+python -m shipment_tracker run --no-summary         # skip the Claude summary
 python -m shipment_tracker test             # run the tests and save the results
 python -m shipment_tracker reset-mock-sheet # start the practice sheet over
 ```
@@ -68,6 +70,18 @@ python -m shipment_tracker reset-mock-sheet # start the practice sheet over
 attention. Failed lookups are *not* errors: they show in the sheet as
 "Lookup failed" so someone can fix the tracking number. Errors are problems
 with a tab (missing, bad layout) or unexpected crashes on a row.
+
+## AI summary
+
+After the sheet is updated, Claude reads the flagged rows (delays, exceptions,
+failed lookups) and suggests a next step for each. It needs `ANTHROPIC_API_KEY`
+in `.env`; without one the summary is skipped and everything else still works.
+
+Claude never sets a status. It only receives city, state, tab, row, tracking
+number, and our status text (no names or addresses), and its answer is
+discarded if it doesn't match the expected format or mentions a shipment we
+didn't send. The printed summary shows *our* status next to Claude's advice.
+A failed summary is a warning in the log, not a failed run.
 
 Rows already marked **Delivered** are skipped on later runs, so finished
 packages don't use up tracking lookups.
@@ -94,7 +108,7 @@ writing anything and asks you to add a Status header yourself.
 - [x] **1. Core:** data shapes, mock provider, status rules, display, tests
 - [x] **2. Sheet layer:** in-memory sheet, safe updater that only writes the Status column
 - [x] **3. Runner:** command-line run, dry-run mode, run log, `.env` loading
-- [ ] **4. Claude summary:** structured output, tested with a fake client
+- [x] **4. Claude summary:** structured output, tested with a fake client
 - [ ] **5. Real Google Sheet:** a test copy first
 - [ ] **6. Daily schedule**
 - [ ] **7. Real FedEx Track API:** needs a FedEx Developer account

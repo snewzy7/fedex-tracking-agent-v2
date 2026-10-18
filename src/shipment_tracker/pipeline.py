@@ -77,6 +77,8 @@ class RunReport:
     tabs: list[TabSummary] = field(default_factory=list)
     outcomes: list[ShipmentOutcome] = field(default_factory=list)
     errors: list[RunError] = field(default_factory=list)
+    ai_summary: dict | None = None  # filled in by the CLI after the run, if enabled
+    ai_summary_note: str | None = None  # why there's no summary, or why it was rejected
 
     def flag_counts(self) -> dict[str, int]:
         counts = Counter(outcome.flag.value for outcome in self.outcomes)

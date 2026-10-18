@@ -25,6 +25,7 @@ DEFAULTS = {
     "TRACKING_PROVIDER": "mock",
     "MOCK_TRACKING_FILE": str(PROJECT_ROOT / "data" / "mock_shipments.json"),
     "LOG_DIR": str(PROJECT_ROOT / "logs"),
+    "ANTHROPIC_MODEL": "claude-opus-5-5",
 }
 
 
@@ -41,6 +42,10 @@ class Settings:
     tracking_provider: str
     mock_tracking_file: Path
     log_dir: Path
+    anthropic_model: str
+    # Whether a key is set. The key itself is never stored here: the
+    # Anthropic SDK reads ANTHROPIC_API_KEY from the environment on its own.
+    has_anthropic_key: bool
 
 
 def load_settings(env: Mapping[str, str] | None = None) -> Settings:
@@ -68,4 +73,6 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         tracking_provider=get("TRACKING_PROVIDER").lower(),
         mock_tracking_file=Path(get("MOCK_TRACKING_FILE")),
         log_dir=Path(get("LOG_DIR")),
+        anthropic_model=get("ANTHROPIC_MODEL"),
+        has_anthropic_key=bool(env.get("ANTHROPIC_API_KEY", "").strip()),
     )
