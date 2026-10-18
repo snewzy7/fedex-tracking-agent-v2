@@ -1,0 +1,20 @@
+{
+  "_comment": "SYNTHETIC DATA ONLY. Made-up names and addresses shaped like the real tracking sheet.",
+  "tabs": {
+    "Form Responses 1": [
+      ["Date", "Name", "Address", "Address 2", "City", "State", "ZIP code", "Kit quantity", "Tracking"],
+      ["10/6/2026", "Avery Example", "100 Sample St", "", "Columbus", "OH", "43004", "2", "100000000001"],
+      ["10/7/2026", "Jordan Placeholder", "22 Test Ave", "Suite 4", "Denver", "CO", "80014", "1", "1000 0000 0003"],
+      ["10/8/2026", "Riley Demo", "9 Mock Rd", "", "Austin", "TX", "73301", "3", "100000000006"],
+      ["10/9/2026", "Casey Fiction", "450 Fake Blvd", "", "Tampa", "FL", "33601", "1", "100000000007"],
+      ["10/10/2026", "Morgan Sample", "7 Pretend Ln", "Apt 2B", "Portland", "OR", "97035", "2", ""],
+      ["10/10/2026", "Quinn Invented", "31 Imaginary Way", "", "Raleigh", "NC", "27601", "1", "1.00000E+11"]
+    ],
+    "Manual Entries": [
+      ["Date", "Name", "Address", "Address 2", "City", "State", "ZIP code", "Kit quantity", "Tracking"],
+      ["10/5/2026", "Taylor Madeup", "8 Nowhere Ct", "", "Boise", "ID", "83702", "4", "100000000002"],
+      ["10/9/2026", "Drew Synthetic", "64 Specimen Dr", "", "Omaha", "NE", "68102", "1", "100000000009"],
+      ["10/11/2026", "Sam Notreal", "12 Hypothetical Pl", "", "Madison", "WI", "53703", "2", "999999999999"]
+    ]
+  }
+}

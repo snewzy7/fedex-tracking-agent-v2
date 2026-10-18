@@ -45,3 +45,16 @@ def normalize_tracking_number(raw: str) -> str:
             f"'{text}' has {len(digits)} digits; FedEx numbers have {MIN_LENGTH} to {MAX_LENGTH}."
         )
     return digits
+
+
+def tracking_key(raw: str) -> str:
+    """A consistent key for matching a Tracking cell to its lookup result.
+
+    "1234 5678 9012" and "123456789012" get the same key. Unusable values
+    fall back to their trimmed text, so they can still be matched to their
+    "Lookup failed" status.
+    """
+    try:
+        return normalize_tracking_number(raw)
+    except InvalidTrackingNumber:
+        return (raw or "").strip()

@@ -1,6 +1,6 @@
 import pytest
 
-from shipment_tracker.tracking_numbers import InvalidTrackingNumber, normalize_tracking_number
+from shipment_tracker.tracking_numbers import InvalidTrackingNumber, normalize_tracking_number, tracking_key
 
 
 @pytest.mark.parametrize(
@@ -31,3 +31,12 @@ def test_valid_numbers_are_cleaned_to_digits(raw, expected):
 def test_unusable_numbers_raise_with_a_helpful_reason(raw, reason):
     with pytest.raises(InvalidTrackingNumber, match=reason):
         normalize_tracking_number(raw)
+
+
+def test_tracking_key_matches_differently_formatted_cells():
+    assert tracking_key("1234 5678 9012") == tracking_key("123456789012") == "123456789012"
+
+
+def test_tracking_key_falls_back_to_trimmed_text_for_unusable_values():
+    assert tracking_key("  1.23457E+11 ") == "1.23457E+11"
+    assert tracking_key("") == ""
